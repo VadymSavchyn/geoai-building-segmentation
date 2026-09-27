@@ -1,0 +1,6 @@
+ultralytics
+rasterio
+geopandas
+shapely
+opencv-python
+numpy

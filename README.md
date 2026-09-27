@@ -15,7 +15,7 @@ This project solves this by programmatically mapping pixel predictions back to t
 
 ## Project Structure
 ├── tif_tiles/              # Georeferenced raster tiles with preserved CRS
-├── scripts/
+    ├── scripts/
 │   ├── 01_slice_raster.py  # Slices large orthoimage into tiles keeping affine matrix
 │   ├── 02_predict.py       # Runs YOLOv8 inference and saves raw .txt labels
 │   └── 03_vectorize.py     # Smooths polygons and exports to .shp

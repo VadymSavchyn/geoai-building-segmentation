@@ -22,3 +22,4 @@ This project solves this by programmatically mapping pixel predictions back to t
 │   └── 03_vectorize.py     # Smooths polygons and exports to .shp
 ├── requirements.txt
 └── README.md
+ 

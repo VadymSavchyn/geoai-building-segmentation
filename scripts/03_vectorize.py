@@ -6,7 +6,6 @@ import geopandas as gpd
 from shapely.geometry import Polygon
 from pathlib import Path
 
-# --- 1. Настройки путей ---
 INPUT_LABELS = Path("runs/segment/predict/labels")
 INPUT_TIFFS = Path("tif_tiles")
 OUTPUT_SHP_DIR = Path("shapefile_final")
@@ -21,13 +20,12 @@ data_records = []
 original_crs = None 
 total_processed = 0
 
-print("Начинаю обработку...")
+print("Starting vectorization process...")
 
-# --- 2. Обработка файлов ---
 for txt_path in Path(INPUT_LABELS).glob('*.txt'):
     full_name = txt_path.stem 
     
-    # Универсальная обрезка любых суффиксов YOLO / Roboflow
+    # Strip standard annotation suffixes if present
     base_name = full_name.split('_png')[0].split('_jpg')[0].split('.rf.')[0] 
     tif_path = os.path.join(INPUT_TIFFS, f"{base_name}.tif")
             
@@ -57,18 +55,18 @@ for txt_path in Path(INPUT_LABELS).glob('*.txt'):
         pixel_coords[:, 0] = norm_coords[:, 0] * width
         pixel_coords[:, 1] = norm_coords[:, 1] * height 
         
-        # Сглаживание Дугласом-Пекером
+        # Simplify polygon contour using Ramer-Douglas-Peucker
         pixel_coords_cv = pixel_coords.reshape(-1, 1, 2)
         perimeter = cv2.arcLength(pixel_coords_cv, True)
         epsilon = epsilon_factor * perimeter
         smoothed_cv = cv2.approxPolyDP(pixel_coords_cv, epsilon, True)
         smoothed_pixels = smoothed_cv.reshape(-1, 2)
         
-        # Защита: если после сглаживания осталось < 3 точек, берем оригинальные пиксели
+        # Fallback if simplification reduces polygon to fewer than 3 vertices
         if len(smoothed_pixels) < 3:
             smoothed_pixels = pixel_coords.reshape(-1, 2)
             
-        # Умножение пикселей на пространственную матрицу
+        # Apply affine transformation to convert pixels to spatial coordinates
         geo_coords = []
         for px, py in smoothed_pixels:
             lon, lat = transform * (px, py)
@@ -82,20 +80,18 @@ for txt_path in Path(INPUT_LABELS).glob('*.txt'):
         data_records.append({"class_id": class_id, "source": base_name})
         total_processed += 1
 
-# --- 3. Сохранение ---
-print(f"Собрано геометрий: {total_processed}")
+print(f"Total geometries processed: {total_processed}")
 
 if not geometries:
-    print("Ошибка: Полигоны не собраны. Проверьте пути.")
+    print("Error: No polygons generated. Check input paths.")
 else:
     gdf = gpd.GeoDataFrame(data_records, geometry=geometries)
     
-    # Назначаем родную систему координат из TIF
     if original_crs is not None:
-        print(f"Задана система координат: {original_crs}")
+        print(f"Assigned CRS: {original_crs}")
         gdf.set_crs(original_crs, inplace=True)
     else:
-        print("Внимание: CRS не прочиталась, ставим неизвестную локальную.")
+        print("Warning: Source CRS not found, exporting without CRS metadata.")
         
     gdf.to_file(OUTPUT_SHP, driver="ESRI Shapefile", encoding='utf-8')
-    print(f"✅ Успешно! Файл сохранен в: {OUTPUT_SHP_DIR}")
+    print(f"Export complete. Saved to: {OUTPUT_SHP_DIR}")

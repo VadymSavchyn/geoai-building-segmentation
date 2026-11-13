@@ -12,11 +12,9 @@ with rasterio.open(input_tiff) as src:
     meta = src.meta.copy()
     
     tile_count = 0
-    # Вычисляем, сколько целых тайлов поместится по ширине и высоте
     rows = src.height // tile_size
     cols = src.width // tile_size
     
-    # Режем строго по целым кускам, игнорируя остатки по краям
     for j in range(rows):
         for i in range(cols):
             window = Window(i * tile_size, j * tile_size, tile_size, tile_size)
@@ -36,4 +34,4 @@ with rasterio.open(input_tiff) as src:
             
             tile_count += 1
 
-print(f"Готово! Нарезано TIF-тайлов: {tile_count}")
+print(f"Done. Generated GeoTIFF tiles: {tile_count}")
